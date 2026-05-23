@@ -1,4 +1,5 @@
 services:
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.1
     container_name: zookeeper
@@ -26,3 +27,23 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  api:
+    build: .
+    container_name: api
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER: kafka:9092
+
+  worker:
+    build: .
+    container_name: worker
+    restart: always
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER: kafka:9092
