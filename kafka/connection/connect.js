@@ -1,8 +1,8 @@
 import { Kafka } from "kafkajs";
 
 const kafka = new Kafka({
-  brokers: ["localhost:9092"], 
   clientId: "whatsapp-bulk",
+  brokers: [process.env.KAFKA_BROKER || "kafka:9092"],
   retry: {
     initialRetryTime: 300,
     retries: 5,
