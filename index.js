@@ -6,33 +6,41 @@ import getnumber from "./express/route/getUserRoute.route.js";
 import { startConsumer } from "./kafka/consumer/consumer.js";
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("🚀 API is running");
 });
 
-async function connectKafkaWithRetry(admin, retries = 5) {
-  while (retries) {
+app.use("/api", getnumber);
+
+// ----------------------------
+// Kafka Retry Logic (SAFE)
+// ----------------------------
+async function connectKafkaWithRetry(admin, maxRetries = 5) {
+  for (let i = 0; i < maxRetries; i++) {
     try {
       await admin.connect();
       console.log("✅ Kafka Admin connected");
       return;
     } catch (err) {
-      console.log(`❌ Kafka connection failed. Retrying... (${retries})`);
-      retries--;
-      await new Promise((res) => setTimeout(res, 3000)); // wait 3 sec
+      console.log(`❌ Kafka retry ${i + 1}/${maxRetries}`);
+      await new Promise((r) => setTimeout(r, 3000));
     }
   }
 
   throw new Error("❌ Kafka not available after retries");
 }
 
-async function init() {
+// ----------------------------
+// Kafka Init
+// ----------------------------
+async function initKafka() {
   const admin = kafka.admin();
 
   try {
-    // 🔥 use retry instead of direct connect
     await connectKafkaWithRetry(admin);
 
     const topics = await admin.listTopics();
@@ -48,30 +56,40 @@ async function init() {
         ],
       });
 
-      console.log("Topic created ✅");
+      console.log("✅ Topic created");
     } else {
-      console.log("Topic already exists ✅");
+      console.log("✅ Topic already exists");
     }
   } catch (err) {
-    console.error("Kafka init error:", err.message);
+    console.error("❌ Kafka init error:", err.message);
   } finally {
     await admin.disconnect();
   }
 }
 
-app.use(express.json());
-app.use("/", getnumber);
-
-// 🔥 START EVERYTHING PROPERLY
+// ----------------------------
+// START APP
+// ----------------------------
 async function startApp() {
-  await init(); // create topic first
+  try {
+    await initKafka();
 
-  // 🔥 start consumer (do NOT await)
-  startConsumer();
+    // IMPORTANT: don’t crash app if consumer fails
+    try {
+      startConsumer();
+      console.log("✅ Consumer started");
+    } catch (err) {
+      console.error("❌ Consumer failed:", err.message);
+    }
 
-  app.listen(port, "0.0.0.0", () => {
-    console.log(`🚀 Server running on port ${port}`);
-  });
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${port}`);
+    });
+
+  } catch (err) {
+    console.error("❌ App startup failed:", err.message);
+    process.exit(1);
+  }
 }
 
 startApp();
