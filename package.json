@@ -1,0 +1,26 @@
+{
+  "name": "whatsapp-bulk-",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "docker:start": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "dev:full": "npm run docker:start && nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "csv-parser": "^3.2.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "kafkajs": "^2.2.4",
+    "nodemon": "^3.1.14",
+    "vcard-parser": "^1.0.0",
+    "xlsx": "^0.18.5"
+  }
+}
